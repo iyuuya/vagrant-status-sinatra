@@ -1,17 +1,21 @@
+# frozen_string_literal: true
+
 require 'bundler'
 Bundler.require :default
 require 'sinatra/contrib/all'
 require 'sinatra/reloader'
 
+set :bind, '0.0.0.0'
+
 helpers do
   def state_label(state)
     label = case state
             when /running/ then 'success'
-            when /poweroff/ then 'default'
+            when /poweroff/ then 'secondary'
             else 'warning'
             end
     <<-TAG
-    <span class="label label-#{label}">#{state}</span>
+    <span class="badge badge-#{label}">#{state}</span>
     TAG
   end
 end
@@ -23,10 +27,10 @@ end
 
 module Vagrant
   class Machine
-    ATTRIBUTES = %i(id name provider state directory)
+    ATTRIBUTES = %i[id name provider state directory]
     attr_reader *ATTRIBUTES
 
-    def initialize(id: id, name: name, provider: provider, state: state, directory: directory)
+    def initialize(id:, name:, provider:, state:, directory:)
       @id = id
       @name = name
       @provider = provider
@@ -39,8 +43,9 @@ module Vagrant
         result = []
         `vagrant global-status`.each_line.to_a.map(&:chop).each_with_index do |line, i|
           next if i < 2
-          break if line == " "
-          result << self.new(Hash[ATTRIBUTES.zip(line.split(/\s+/))])
+          break if line == ' '
+
+          result << new(Hash[ATTRIBUTES.zip(line.split(/\s+/))])
         end
         result
       end
